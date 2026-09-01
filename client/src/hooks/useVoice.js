@@ -101,64 +101,37 @@ export function useVoice() {
     setIsListening(false);
   }, []);
 
-  const getVoicesAsync = useCallback(() => {
-    return new Promise((resolve) => {
-      const existing = window.speechSynthesis.getVoices();
-      if (existing.length > 0) {
-        resolve(existing);
-        return;
-      }
-      const onVoicesChanged = () => {
-        window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
-        resolve(window.speechSynthesis.getVoices());
-      };
-      window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
-      setTimeout(() => {
-        window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
-        resolve(window.speechSynthesis.getVoices());
-      }, 1000);
-    });
-  }, []);
-
   const speak = useCallback(
-    async (text, { onEnd } = {}) => {
+    (text, { onEnd } = {}) => {
       if (!ttsSupported || !text) {
         onEnd?.();
         return;
       }
       window.speechSynthesis.cancel();
-
-      const voices = await getVoicesAsync();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.98;
       utterance.pitch = 1.0;
       utterance.lang = "en-US";
 
+      const voices = window.speechSynthesis.getVoices();
       const preferred = voices.find(
         (v) => /en-US|en_US/i.test(v.lang) && /female|Samantha|Google US English/i.test(v.name)
       );
       if (preferred) utterance.voice = preferred;
 
-      const safetyTimeout = setTimeout(() => {
-        setIsSpeaking(false);
-        onEnd?.();
-      }, Math.max(4000, text.length * 80));
-
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {
-        clearTimeout(safetyTimeout);
         setIsSpeaking(false);
         onEnd?.();
       };
       utterance.onerror = () => {
-        clearTimeout(safetyTimeout);
         setIsSpeaking(false);
         onEnd?.();
       };
 
       window.speechSynthesis.speak(utterance);
     },
-    [ttsSupported, getVoicesAsync]
+    [ttsSupported]
   );
 
   const cancelSpeaking = useCallback(() => {

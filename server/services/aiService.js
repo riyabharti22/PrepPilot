@@ -107,6 +107,7 @@ export function extractResumeHighlights(resumeText) {
     if (re.test(resumeText)) found.add(kw);
   }
 
+  // Grab short project-like sentences mentioning "built", "developed", "created"
   const sentences = resumeText.split(/[\n.]/).map((s) => s.trim()).filter(Boolean);
   const projectLines = sentences
     .filter((s) => /\b(built|developed|created|designed|implemented)\b/i.test(s))
@@ -122,6 +123,9 @@ export function extractResumeHighlights(resumeText) {
 /* Public engine functions                                               */
 /* --------------------------------------------------------------------- */
 
+/**
+ * Generate the next interview question given full context.
+ */
 export async function generateNextQuestion({
   role,
   interviewType,
@@ -238,6 +242,7 @@ function generateDemoQuestion({
   const remaining = bank.filter((item) => !askedQuestions.has(item.q));
   const pool = remaining.length > 0 ? remaining : bank;
 
+  // Prefer a question matching the target difficulty, else nearest match.
   const byDifficulty = pool.filter((item) => item.difficulty === currentDifficulty);
   const chosen = (byDifficulty.length > 0 ? byDifficulty : pool)[
     questionNumber % (byDifficulty.length > 0 ? byDifficulty.length : pool.length)
@@ -316,61 +321,35 @@ No markdown, no backticks, no extra text.`;
   }
 }
 
-function generateDemoEvaluation({ question, answer, difficulty }) {
-  const trimmed = answer.trim();
-  const words = trimmed.split(/\s+/).filter(Boolean);
-  const uniqueWords = new Set(words.map((w) => w.toLowerCase()));
+function generateDemoEvaluation({ answer, difficulty }) {
+  // Deterministic-ish pseudo scoring based on answer length/content richness,
+  // so demo mode still feels responsive rather than random.
+  const words = answer.trim().split(/\s+/).filter(Boolean);
+  const lengthScore = Math.min(100, Math.round((words.length / 60) * 100));
+  const hasExample = /\b(example|for instance|i used|i built|project)\b/i.test(answer);
+  const base = Math.max(35, Math.min(95, lengthScore * 0.6 + (hasExample ? 20 : 0) + 25));
+  const jitter = () => Math.max(0, Math.min(100, Math.round(base + (Math.random() * 10 - 5))));
 
-  const stopWords = new Set(["the","a","an","is","are","was","were","how","what","why","would","you","your","to","of","in","on","and","or","with","for","this","that","it"]);
-  const questionKeywords = question
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter((w) => w.length > 3 && !stopWords.has(w));
-
-  const answerLower = trimmed.toLowerCase();
-  const keywordHits = questionKeywords.filter((kw) => answerLower.includes(kw)).length;
-  const keywordRatio = questionKeywords.length > 0 ? keywordHits / questionKeywords.length : 0;
-
-  const repetitionRatio = words.length > 0 ? uniqueWords.size / words.length : 0;
-  const isVeryShort = words.length < 8;
-  const isLowEffort = repetitionRatio < 0.4 || (words.length > 0 && uniqueWords.size < 5);
-
-  const hasExample = /\b(example|for instance|i used|i built|project)\b/i.test(trimmed);
-
-  let base;
-  if (isVeryShort) {
-    base = 15 + keywordRatio * 15;
-  } else if (isLowEffort) {
-    base = 10;
-  } else {
-    const lengthScore = Math.min(100, Math.round((words.length / 60) * 100));
-    base = lengthScore * 0.35 + keywordRatio * 45 + (hasExample ? 10 : 0);
-  }
-
-  const overall = Math.max(0, Math.min(95, Math.round(base)));
-  const jitter = () => Math.max(0, Math.min(100, Math.round(overall + (Math.random() * 8 - 4))));
+  const overall = jitter();
 
   return normalizeEvaluation({
     overallScore: overall,
     technicalScore: jitter(),
     communicationScore: jitter(),
-    relevanceScore: Math.max(0, Math.min(100, Math.round(keywordRatio * 100))),
+    relevanceScore: jitter(),
     confidenceScore: jitter(),
-    strengths:
-      overall >= 60
-        ? [hasExample ? "Backed the answer with a concrete example" : "Addressed the core of the question", "Used relevant terminology"]
-        : [],
-    weaknesses:
-      overall < 60
-        ? [isVeryShort ? "Answer was too brief to demonstrate understanding" : "Answer didn't clearly address the question's key concepts", "Consider structuring with a definition, reasoning, then example"]
-        : ["Consider quantifying impact or results where possible"],
+    strengths: [
+      words.length > 25 ? "Gave a reasonably detailed answer" : "Attempted the question directly",
+      hasExample ? "Backed the answer with a concrete example" : "Stayed on topic",
+    ],
+    weaknesses: [
+      words.length < 25 ? "Answer could be more detailed" : "Could be more concise and structured",
+      "Consider quantifying impact or results where possible",
+    ],
     feedback:
       overall >= 70
         ? "Solid answer overall - you covered the core idea clearly. Adding a specific example or metric would make it even stronger."
-        : overall >= 40
-        ? "This touches on the topic but lacks depth or specific detail relevant to the question. Try explaining the 'why' behind your answer, not just a general statement."
-        : "This answer doesn't demonstrate understanding of the topic being asked. Try to directly address the specific concept in the question with a clear explanation.",
+        : "This is a good starting point, but try to structure your answer with a clear explanation followed by a concrete example.",
     betterAnswer:
       "A strong answer would briefly define the concept, explain the reasoning or trade-offs, and close with a real example from a project you've worked on.",
     nextQuestionDirection:
@@ -449,6 +428,7 @@ function safeParseJSON(text) {
     const cleaned = text.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
     return JSON.parse(cleaned);
   } catch {
+    // try to extract the first {...} block
     const match = text.match(/\{[\s\S]*\}/);
     if (match) {
       try {
@@ -523,6 +503,7 @@ export function buildFinalReport(questions) {
     .slice(0, 4)
     .map(([w]) => w);
 
+  // Practice topics: topics of the lowest-scoring questions.
   const practiceTopics = Array.from(
     new Set(
       evaluated
