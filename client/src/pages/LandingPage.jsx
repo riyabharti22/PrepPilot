@@ -142,62 +142,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* WHY PREPPILOT / EXAMPLE EXPERIENCE */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
-          <div>
-            <span className="label-pill">Why an AI avatar</span>
-            <h2 className="mt-4 font-display text-3xl font-bold text-navy-900">
-              This should feel like sitting across from an interviewer, not chatting with a bot.
-            </h2>
-            <p className="mt-4 text-navy-700/70">
-              Text-only practice lets you overthink and rewrite. PrepPilot's avatar speaks the
-              question aloud and listens to your spoken answer in real time, so you build the
-              muscle that actually matters on interview day: thinking on your feet, out loud,
-              under a little pressure.
-            </p>
-            <ul className="mt-6 space-y-3 text-sm text-navy-700">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-lavender-500" />
-                Visible listening, thinking, and speaking states keep you oriented in the flow.
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-lavender-500" />
-                Adaptive difficulty means every session is calibrated to how you're actually doing.
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-lavender-500" />
-                Resume-aware questions mean you're practicing to defend your own projects.
-              </li>
-            </ul>
-          </div>
-
-          <div className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-navy-700/10 bg-navy-950 px-5 py-3 text-white">
-              <span className="font-display text-sm font-semibold">PrepPilot</span>
-              <span className="text-xs text-white/50">Question 3/8</span>
-            </div>
-            <div className="space-y-4 p-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-lavender-600">Question</p>
-              <p className="text-navy-900">
-                "You mentioned using MongoDB in your project. How did you structure your
-                database schema?"
-              </p>
-              <div className="rounded-xl bg-mist-100 p-4 text-sm text-navy-700/70">
-                I designed a normalized schema with a users collection and a separate orders
-                collection referencing user IDs, so we could scale reads independently…
-              </div>
-              <div className="flex items-center justify-between text-xs text-navy-700/50">
-                <span>● ● ● ○ ○ ○ ○ ○</span>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-600">
-                  Score: 84
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="bg-navy-950 bg-aurora py-20 text-white">
         <div className="mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
